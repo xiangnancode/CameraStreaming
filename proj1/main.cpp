@@ -3,11 +3,12 @@
 #include <string>
 #include <unistd.h>
 #include <stdlib.h>
+#include <algorithm>
 
 #include "hi_type.h"
 #include "hi_net_dev_sdk.h"
 #include "hi_net_dev_errors.h"
-#include "getconfig.h"
+#include "INIReader.h"
 
 
 #define UNAME	"admin"
@@ -88,6 +89,22 @@ HI_S32 OnDataCallback(HI_U32 u32Handle, /* 句柄 */
 	return HI_SUCCESS;
 }
 
+string get_Config(string filename, string section, string name) {
+	INIReader reader("./Data/"+filename);
+
+    if (reader.ParseError() < 0) {
+        std::cout << "Can't load 'config_net.ini'\n";
+        return NULL;
+    }
+	string str = reader.Get(section, name, "UNKNOWN");
+	//cout << str << endl;
+    str.erase(remove(str.begin(), str.end(), ' '), str.end());
+    //cout << str << endl;
+    str.erase(remove(str.begin(), str.end(), '"'), str.end());
+    //cout << str << endl;
+    return str;
+}
+
 
 int main (int argc, char * const argv[]) 
 {
@@ -98,28 +115,31 @@ int main (int argc, char * const argv[])
     HI_U32 a;
 	HI_NET_DEV_Init();
     
-	get_Config configinfo;
+	//get_Config configinfo;
 	//read IP address and Port
-    Net *netinfo = configinfo.getNetInfo();
+	
+    string ipaddr = get_Config("config_net.ini", "netinfo", "ipaddr");
+    string port = get_Config("config_net.ini", "netsvr", "httpport");
     //print out 
-	cout << netinfo->ipaddr << endl;
-	cout << netinfo->port << endl;
+	cout << ipaddr << endl;
+	cout << port << endl;
 
-	const HI_CHAR *cHOST = netinfo->ipaddr.c_str();
-	const char *port = netinfo->port.c_str();
-	HI_U16 cPORT = atoi(port);
+	const HI_CHAR *cHOST = ipaddr.c_str();
+	HI_U16 cPORT = atoi(port.c_str());
+
 	//read username and password under userID #
 	int userID = 0;
-	User *userinfo = NULL;
 	while (s32Ret != HI_SUCCESS) {
-		userinfo = configinfo.getUserInfo(userID++);
-		cout << userinfo->userID << endl;
-		cout << userinfo->username << endl;
-		cout << userinfo->password << endl;
-		if (userinfo->userID == -1) {break;}
-		const HI_CHAR *cUNAME = userinfo->username.c_str();
-		const HI_CHAR *cPWORD = userinfo->password.c_str();
+		string username = get_Config("config_user.ini", "user"+to_string(userID), "username");
+		string password = get_Config("config_user.ini", "user"+to_string(userID), "password");
+		cout << userID << endl;
+		cout << username << endl;
+		cout << password << endl;
+		if (username == "UNKNOWN") {break;}
+		const HI_CHAR *cUNAME = username.c_str();
+		const HI_CHAR *cPWORD = password.c_str();
 		s32Ret = HI_NET_DEV_Login(&u32Handle, cUNAME, cPWORD, cHOST, cPORT);
+		++userID;
 	}
     //camera
     if (s32Ret != HI_SUCCESS)
@@ -135,26 +155,22 @@ int main (int argc, char * const argv[])
 	struStreamInfo.blFlag = HI_TRUE;//HI_FALSE;
 	struStreamInfo.u32Mode = HI_NET_DEV_STREAM_MODE_TCP;
 	struStreamInfo.u8Type = HI_NET_DEV_STREAM_ALL;
+	//cout << "before" << struStreamInfo.u32Channel << endl;
 	s32Ret = HI_NET_DEV_StartStream(u32Handle, &struStreamInfo);
+	//cout << "after" << struStreamInfo.u32Channel << endl;
 	if (s32Ret != HI_SUCCESS)
 	{
 		HI_NET_DEV_Logout(u32Handle);
 		u32Handle = 0;
 		return -1;
 	}    
-    
-    while (1)
-    {
-    	sleep(10);
-    }
-    
+    sleep(5);
+   
     HI_NET_DEV_StopStream(u32Handle);
     HI_NET_DEV_Logout(u32Handle);
     
     HI_NET_DEV_DeInit();
 
     printf("stop\n");
-    //free memory
-	configinfo.freeMemory(netinfo, userinfo);
     return 0;
 }
