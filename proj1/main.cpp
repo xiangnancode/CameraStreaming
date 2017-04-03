@@ -30,14 +30,10 @@ HI_S32 OnEventCallback(HI_U32 u32Handle, /* 句柄 */
 
 void SaveRecordFile(HI_CHAR *pPath, HI_U8* pu8Buffer, HI_U32 u32Length)
 {
-	int bsize = u32Length;//sizeof(pu8Buffer)/sizeof(HI_U8);
-	HI_U8 *buffer = new HI_U8[bsize];
-	copy(pu8Buffer, pu8Buffer+bsize, buffer);
 	FILE* fp;
 
 	fp = fopen(pPath, "ab+");
 	fwrite(pu8Buffer, sizeof(HI_U8), u32Length, fp);
-	delete buffer;
 	fclose(fp);
 }
 
@@ -71,15 +67,16 @@ HI_S32 OnStreamCallback(HI_U32 u32Handle, /* 句柄 */
 		if (pstruAV->u32AVFrameFlag == HI_NET_DEV_VIDEO_FRAME_FLAG && once)
 		{
 			//once = false;
-			printf("Video %u PTS: %u \n", pstruAV->u32VFrameType, pstruAV->u32AVFramePTS);
-			SaveRecordFile(outputV, pu8Buffer+sizeof(HI_S_AVFrame), u32Length-sizeof(HI_S_AVFrame));
+			//cout << "stream: ";
+			//printf("Video %u PTS: %u \n", pstruAV->u32VFrameType, pstruAV->u32AVFramePTS);
+			SaveRecordFile(outputV, pu8Buffer, u32Length);
 			delete outputV;	
 		}
 		else
 		if (pstruAV->u32AVFrameFlag == HI_NET_DEV_AUDIO_FRAME_FLAG)
 		{
 			//printf("Audio %u PTS: %u \n", pstruAV->u32AVFrameLen, pstruAV->u32AVFramePTS);
-			SaveRecordFile(outputA, pu8Buffer, u32Length);
+			SaveRecordFile(outputV, pu8Buffer, u32Length);
 			delete outputA;
 		}
 	}
@@ -88,6 +85,7 @@ HI_S32 OnStreamCallback(HI_U32 u32Handle, /* 句柄 */
 	{
 		pstruSys = (HI_S_SysHeader*)pu8Buffer;
 		printf("Video W:%u H:%u Audio: %u \n", pstruSys->struVHeader.u32Width, pstruSys->struVHeader.u32Height, pstruSys->struAHeader.u32Format);
+		SaveRecordFile(outputV, pu8Buffer, u32Length);
 	} 
 
 	return HI_SUCCESS;
@@ -100,6 +98,7 @@ HI_S32 OnDataCallback(HI_U32 u32Handle, /* 句柄 */
                                 HI_VOID* pUserData    /* 用户数据*/
                                 )
 {
+
 	return HI_SUCCESS;
 }
 
@@ -176,7 +175,7 @@ int main (int argc, char * const argv[])
 		u32Handle = 0;
 		return -1;
 	}    
-    sleep(100);
+    sleep(10);
    
     HI_NET_DEV_StopStream(u32Handle);
     HI_NET_DEV_Logout(u32Handle);
