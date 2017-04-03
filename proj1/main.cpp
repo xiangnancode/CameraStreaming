@@ -30,10 +30,14 @@ HI_S32 OnEventCallback(HI_U32 u32Handle, /* 句柄 */
 
 void SaveRecordFile(HI_CHAR *pPath, HI_U8* pu8Buffer, HI_U32 u32Length)
 {
+	int bsize = u32Length;//sizeof(pu8Buffer)/sizeof(HI_U8);
+	HI_U8 *buffer = new HI_U8[bsize];
+	copy(pu8Buffer, pu8Buffer+bsize, buffer);
 	FILE* fp;
 
 	fp = fopen(pPath, "ab+");
-	fwrite(pu8Buffer, 1, u32Length, fp);
+	fwrite(pu8Buffer, sizeof(HI_U8), u32Length, fp);
+	delete buffer;
 	fclose(fp);
 }
 
@@ -44,29 +48,39 @@ HI_S32 OnStreamCallback(HI_U32 u32Handle, /* 句柄 */
                                 HI_VOID* pUserData    /* 用户数据*/
                                 )
 {
+	
 
 	HI_S_AVFrame* pstruAV = HI_NULL;
 	HI_S_SysHeader* pstruSys = HI_NULL;
 	
-	string str = "Video.hx";
-	char *output = new char[str.size() + 1];
-	copy(str.begin(), str.end(), output);
-	output[str.size()] = '\0';
+	string strV = "Video.h264";
+	char *outputV = new char[strV.size() + 1];
+	copy(strV.begin(), strV.end(), outputV);
+	outputV[strV.size()] = '\0';
+
+	string strA = "audio.hx";
+	char *outputA = new char[strA.size() + 1];
+	copy(strA.begin(), strA.end(), outputA);
+	outputA[strA.size()] = '\0';
+	bool once = true;
 
 	if (u32DataType == HI_NET_DEV_AV_DATA)
 	{
 		pstruAV = (HI_S_AVFrame*)pu8Buffer;
 
-		if (pstruAV->u32AVFrameFlag == HI_NET_DEV_VIDEO_FRAME_FLAG)
+		if (pstruAV->u32AVFrameFlag == HI_NET_DEV_VIDEO_FRAME_FLAG && once)
 		{
+			//once = false;
 			printf("Video %u PTS: %u \n", pstruAV->u32VFrameType, pstruAV->u32AVFramePTS);
-			SaveRecordFile(output, pu8Buffer, u32Length);			
+			SaveRecordFile(outputV, pu8Buffer+sizeof(HI_S_AVFrame), u32Length-sizeof(HI_S_AVFrame));
+			delete outputV;	
 		}
 		else
 		if (pstruAV->u32AVFrameFlag == HI_NET_DEV_AUDIO_FRAME_FLAG)
 		{
-			printf("Audio %u PTS: %u \n", pstruAV->u32AVFrameLen, pstruAV->u32AVFramePTS);
-			SaveRecordFile(output, pu8Buffer, u32Length);			
+			//printf("Audio %u PTS: %u \n", pstruAV->u32AVFrameLen, pstruAV->u32AVFramePTS);
+			SaveRecordFile(outputA, pu8Buffer, u32Length);
+			delete outputA;
 		}
 	}
 	else
@@ -147,24 +161,22 @@ int main (int argc, char * const argv[])
         HI_NET_DEV_DeInit();
 	return -1;
     }
-    HI_NET_DEV_SetEventCallBack(u32Handle, OnEventCallback, &a);
+    //HI_NET_DEV_SetEventCallBack(u32Handle, OnEventCallback, &a);
 	HI_NET_DEV_SetStreamCallBack(u32Handle, OnStreamCallback, &a);
-	HI_NET_DEV_SetDataCallBack(u32Handle, OnDataCallback, &a);
+	//HI_NET_DEV_SetDataCallBack(u32Handle, OnDataCallback, &a);
 
 	struStreamInfo.u32Channel = HI_NET_DEV_CHANNEL_1;
-	struStreamInfo.blFlag = HI_TRUE;//HI_FALSE;
+	struStreamInfo.blFlag = HI_FALSE;//HI_FALSE;
 	struStreamInfo.u32Mode = HI_NET_DEV_STREAM_MODE_TCP;
 	struStreamInfo.u8Type = HI_NET_DEV_STREAM_ALL;
-	//cout << "before" << struStreamInfo.u32Channel << endl;
 	s32Ret = HI_NET_DEV_StartStream(u32Handle, &struStreamInfo);
-	//cout << "after" << struStreamInfo.u32Channel << endl;
 	if (s32Ret != HI_SUCCESS)
 	{
 		HI_NET_DEV_Logout(u32Handle);
 		u32Handle = 0;
 		return -1;
 	}    
-    sleep(5);
+    sleep(100);
    
     HI_NET_DEV_StopStream(u32Handle);
     HI_NET_DEV_Logout(u32Handle);
