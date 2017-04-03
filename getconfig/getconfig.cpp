@@ -6,7 +6,7 @@ int main (int argc, char * const argv[])
     Net *netinfo = configinfo.getNetInfo();
 	cout << netinfo->ipaddr << endl;
 	cout << netinfo->port << endl;
-	User *userinfo = configinfo.getUserInfo(2);
+	User *userinfo = configinfo.getUserInfo(0);
 	cout << userinfo->userID << endl;
 	cout << userinfo->username << endl;
 	cout << userinfo->password << endl;
