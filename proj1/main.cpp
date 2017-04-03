@@ -54,7 +54,7 @@ HI_S32 OnStreamCallback(HI_U32 u32Handle, /* 句柄 */
 	copy(strV.begin(), strV.end(), outputV);
 	outputV[strV.size()] = '\0';
 
-	string strA = "audio.hx";
+	string strA = "audio.g711a";
 	char *outputA = new char[strA.size() + 1];
 	copy(strA.begin(), strA.end(), outputA);
 	outputA[strA.size()] = '\0';
@@ -68,15 +68,16 @@ HI_S32 OnStreamCallback(HI_U32 u32Handle, /* 句柄 */
 		{
 			//once = false;
 			//cout << "stream: ";
-			//printf("Video %u PTS: %u \n", pstruAV->u32VFrameType, pstruAV->u32AVFramePTS);
+			printf("Video %u PTS: %u \n", pstruAV->u32VFrameType, pstruAV->u32AVFramePTS);
 			SaveRecordFile(outputV, pu8Buffer, u32Length);
 			delete outputV;	
 		}
 		else
 		if (pstruAV->u32AVFrameFlag == HI_NET_DEV_AUDIO_FRAME_FLAG)
 		{
-			//printf("Audio %u PTS: %u \n", pstruAV->u32AVFrameLen, pstruAV->u32AVFramePTS);
+			printf("Audio %u PTS: %u \n", pstruAV->u32AVFrameLen, pstruAV->u32AVFramePTS);
 			SaveRecordFile(outputV, pu8Buffer, u32Length);
+			SaveRecordFile(outputA, pu8Buffer, u32Length);
 			delete outputA;
 		}
 	}
